@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "importHelpers": true,
+    "module": "commonjs",
+    "target": "es6",
+    "lib": [ "es6", "dom" ],
+    "moduleResolution": "node",
+    "rootDir": "./",
+    "sourceMap": true,
+    "allowJs": true,
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noImplicitThis": true,
+    "strictNullChecks": true,
+    "noImplicitReturns": true,
+    "preserveConstEnums": true,
+    "suppressImplicitAnyIndexErrors": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./build/"
+  },
+  "exclude": [ "node_modules", "build", "webpack" ],
+  "types": [ "typePatches" ]
+}

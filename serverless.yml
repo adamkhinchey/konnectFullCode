@@ -1,0 +1,1335 @@
+service: konnectapp
+
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  stage: prod
+  versionFunctions: false
+  region: ap-southeast-2
+  deploymentBucket: prod-deploy-konnectapp
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - lambda:InvokeFunction
+      Resource: "*"
+    - Effect: "Allow"
+      Action:
+        - lambda:InvokeAsync
+      Resource: "*"
+    - Effect: "Allow"
+      Action:
+        - s3:*
+      Resource: "*"
+  timeout: 900
+  memorySize: 2048
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-dotenv-plugin
+  - serverless-offline
+ # - serverless-domain-manager
+  - serverless-prune-plugin
+  - serverless-plugin-split-stacks
+
+resources:
+  Resources:
+    GatewayResponseDefault4XX:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+
+custom:
+  prune:
+    automatic: true
+    number: 3
+  authorizers:
+    authorize:
+      name: authorize
+      type: request
+      identitySource: method.request.header.Authorization
+  splitStacks:
+    nestedStackCount: 20 # Controls the number of created nested stacks
+    perFunction: false
+    perType: false
+    perGroupFunction: true
+
+functions:
+  authorize:
+    handler: src/handlers/UserHandler.authorize
+  signup:
+    handler: src/handlers/UserHandler.addUser # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: signup
+          method: post
+          cors: true
+  userLogin:
+    handler: src/handlers/UserHandler.userLogin # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: login
+          method: post
+          cors: true
+  sendResetPasswordLink:
+    handler: src/handlers/UserHandler.sendResetPasswordLink # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: sendResetPasswordLink
+          method: post
+          cors: true
+  resetPassword:
+    handler: src/handlers/UserHandler.resetPassword # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: resetPassword
+          method: post
+          cors: true
+  getS3BucketSignedURL:
+    handler: src/handlers/UserHandler.getS3BucketSignedURL
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getS3BucketSignedURL
+          method: get
+          cors: true
+  verifyUserEmail:
+    handler: src/handlers/UserHandler.verifyUserEmail
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: verifyUserEmail
+          method: post
+          cors: true
+  searchCompany:
+    handler: src/handlers/CompanyHandler.searchCompany
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: searchCompany
+          method: post
+          cors: true
+  searchCompanyForDomain:
+    handler: src/handlers/CompanyHandler.searchCompanyForDomain
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: searchCompanyForDomain
+          method: post
+          cors: true
+  searchCompanyForEvent:
+    handler: src/handlers/CompanyHandler.searchCompanyForEvent
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: searchCompanyForEvent
+          method: post
+          cors: true
+  getRegionAndCountryList:
+    handler: src/handlers/CompanyHandler.getRegionAndCountryList
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getRegionAndCountryList
+          method: get
+          cors: true
+  assignCompanyToUser:
+    handler: src/handlers/CompanyHandler.assignCompanyToUser
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: assignCompanyToUser
+          method: post
+          cors:
+           origin: '*' # <-- Specify allowed origin
+           headers: # <-- Specify allowed headers
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getCategoryList:
+    handler: src/handlers/CompanyHandler.getCategoryList
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getCategoryList
+          method: get
+          cors:
+           origin: '*' # <-- Specify allowed origin
+           headers: # <-- Specify allowed headers
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+  createCompany:
+    handler: src/handlers/CompanyHandler.createCompany
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: createCompany
+          method: post
+          cors:
+           origin: '*' # <-- Specify allowed origin
+           headers: # <-- Specify allowed headers
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  updateUserProfile:
+    handler: src/handlers/UserHandler.updateUserProfile # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: updateUserProfile
+          method: put
+          cors:
+           origin: '*' # <-- Specify allowed origin
+           headers: # <-- Specify allowed headers
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+
+  getUserProfile:
+    handler: src/handlers/UserHandler.getUserProfile # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: me
+          method: get
+          cors:
+           origin: '*' # <-- Specify allowed origin
+           headers: # <-- Specify allowed headers
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  removeCompanyAssocaition:
+    handler: src/handlers/CompanyHandler.removeCompanyAssocaition
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: removeCompanyAssocaition
+          method: post
+          cors:
+           origin: '*' # <-- Specify allowed origin
+           headers: # <-- Specify allowed headers
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  changePassword:
+    handler:  src/handlers/UserHandler.changePassword # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: changePassword
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  deleteProfile:
+    handler:  src/handlers/UserHandler.deleteProfile # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: deleteProfile
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  addConnection:
+    handler:  src/handlers/UserHandler.addConnection # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: addConnection
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  deleteConnection:
+    handler:  src/handlers/UserHandler.deleteConnection # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: deleteConnection
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  listConnection:
+    handler:  src/handlers/UserHandler.listConnection # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: listConnection
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  searchGlobalConnection:
+    handler:  src/handlers/UserHandler.searchGlobalConnection # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: searchGlobalConnection
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  searchGlobalConnectionNew:
+    handler:  src/handlers/UserHandler.searchGlobalConnectionNew # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: searchGlobalConnectionNew
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  searchGlobalConnectionForCollection:
+    handler:  src/handlers/UserHandler.searchGlobalConnectionForCollection # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: searchGlobalConnectionForCollection
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  checkUserCompanyDomain:
+    handler:  src/handlers/UserHandler.checkUserCompanyDomain # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: checkUserCompanyDomain
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getCompanyProfileAndMembers:
+    handler: src/handlers/CompanyHandler.getCompanyProfileAndMembers # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getCompanyProfileDetails
+          method: get
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  makeCompanyAdmin:
+    handler: src/handlers/CompanyHandler.makeCompanyAdmin # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: makeCompanyAdmin
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  approveRejectCompanyJoinRequest:
+    handler: src/handlers/CompanyHandler.approveRejectCompanyJoinRequest # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: approveRejectCompanyJoinRequest
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  saveColleaguePosition:
+    handler: src/handlers/CompanyHandler.saveColleaguePosition # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: saveColleaguePosition
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  inviteCompanyColleague:
+    handler: src/handlers/CompanyHandler.inviteCompanyColleague # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: inviteCompanyColleague
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getCompanyColleaguesWithSegregation:
+    handler: src/handlers/CompanyHandler.getCompanyColleaguesWithSegregation # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getCompanyColleaguesWithSegregation
+          method: get
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getUserDataByUID:
+    handler: src/handlers/UserHandler.getUserDataByUID # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getUserDataByUID
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+  inviteNewCompany:
+    handler: src/handlers/UserHandler.inviteNewCompany # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: inviteNewCompany
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  searchCompanyContactsByKeyword:
+    handler: src/handlers/UserHandler.searchCompanyContactsByKeyword # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: searchCompanyContactsByKeyword
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  searchCompanyByKeyword:
+    handler: src/handlers/UserHandler.searchCompanyByKeyword # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: searchCompanyByKeyword
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getCompanyContacts:
+    handler: src/handlers/UserHandler.getCompanyContacts # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getCompanyContacts
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  saveEvent:
+    handler: src/handlers/UserHandler.saveEvent # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: saveEvent
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  updateEvent:
+    handler: src/handlers/UserHandler.updateEvent # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: updateEvent
+          method: PATCH
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  saveAndInviteEventTab:
+    handler: src/handlers/UserHandler.saveAndInviteEventTab # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: saveAndInviteEventTab
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+
+  updateCompanyProfile:
+    handler: src/handlers/CompanyHandler.updateCompanyProfile # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: updateCompanyProfile
+          method: post
+          cors:
+           origin: '*' # <-- Specify allowed origin
+           headers: # <-- Specify allowed headers
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getEvent:
+    handler: src/handlers/UserHandler.getEvent # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getEvent
+          method: get
+          cors:
+           origin: '*' # <-- Specify allowed origin
+           headers: # <-- Specify allowed headers
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  addEventFiles:
+    handler: src/handlers/EventFilesHandler.addEventFiles
+    events:
+      - http:
+          path: addEventFiles
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  addEventURL:
+    handler: src/handlers/EventFilesHandler.addEventURL
+    events:
+      - http:
+          path: addEventURL
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  createEventDirectoryStructure:
+    handler: src/handlers/EventFilesHandler.createEventDirectoryStructure
+  getEventFileUploadS3SingnedUrl:
+    handler: src/handlers/EventFilesHandler.getEventFileS3SingnedUrl
+    events:
+      - http:
+          path: getEventFileUploadS3SingnedUrl
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getEventFiles:
+    handler: src/handlers/EventFilesHandler.getEventFiles
+    events:
+      - http:
+          path: event/{id}/files
+          method: get
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  deleteEventFile:
+    handler: src/handlers/EventFilesHandler.deleteEventFile
+    events:
+      - http:
+          path: event/{id}/files/{fileId}
+          method: delete
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  deleteEventLink:
+    handler: src/handlers/EventFilesHandler.deleteEventLink
+    events:
+      - http:
+          path: event/{id}/file/{fileId}
+          method: delete
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getEventList:
+    handler: src/handlers/UserHandler.getEventList # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getEventList
+          method: get
+          cors:
+           origin: '*' # <-- Specify allowed origin
+           headers: # <-- Specify allowed headers
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  deleteMyEvent:
+    handler: src/handlers/UserHandler.deleteMyEvent # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: deleteMyEvent
+          method: get
+          cors:
+           origin: '*' # <-- Specify allowed origin
+           headers: # <-- Specify allowed headers
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getEventsWithDate:
+    handler: src/handlers/UserHandler.getEventsWithDate # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getEventsWithDate
+          method: get
+          cors:
+           origin: '*' # <-- Specify allowed origin
+           headers: # <-- Specify allowed headers
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getTimelineTabData:
+    handler: src/handlers/UserHandler.getTimelineTabData
+    events:
+      - http:
+          path: event/{id}/venue/{venueId}/timeline
+          method: get
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  acceptDeclineEventTabParts:
+    handler: src/handlers/UserHandler.acceptDeclineEventTabParts # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: acceptDeclineEventTabParts
+          method: get
+          cors:
+           origin: '*' # <-- Specify allowed origin
+           headers: # <-- Specify allowed headers
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  adminLogin:
+    handler: src/handlers/AdminHandler.adminLogin # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: adminLogin
+          method: post
+          cors: true
+  listUsers:
+    handler: src/handlers/AdminHandler.listUsers # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: listUsers
+          method: get
+          cors:
+           origin: '*' # <-- Specify allowed origin
+           headers: # <-- Specify allowed headers
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getUserDtail:
+    handler: src/handlers/AdminHandler.getUserDtail # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getUserDtail
+          method: get
+          cors:
+           origin: '*' # <-- Specify allowed origin
+           headers: # <-- Specify allowed headers
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getCurrentEventsList:
+    handler: src/handlers/AdminHandler.getCurrentEventsList # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getCurrentEventsList
+          method: get
+          cors:
+           origin: '*' # <-- Specify allowed origin
+           headers: # <-- Specify allowed headers
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  changeAdminPassword:
+    handler: src/handlers/AdminHandler.changeAdminPassword # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: changeAdminPassword
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  changeUserStatus:
+    handler: src/handlers/AdminHandler.changeUserStatus # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: changeUserStatus
+          method: get
+          cors:
+           origin: '*' # <-- Specify allowed origin
+           headers: # <-- Specify allowed headers
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  updateAdminProfile:
+    handler: src/handlers/AdminHandler.updateAdminProfile # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: updateAdminProfile
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getUserByEmailId:
+    handler: src/handlers/UserHandler.getUserByEmailId # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getUserByEmailId
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  feedCompanySeedData:
+    handler: src/handlers/UserHandler.feedCompanySeedData # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: feedCompanySeedData
+          method: get
+          cors:
+           origin: '*' # <-- Specify allowed origin
+           headers: # <-- Specify allowed headers
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+  resendEmailVerificationLink:
+    handler: src/handlers/UserHandler.resendEmailVerificationLink # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: resendEmailVerificationLink
+          method: get
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  importExportServicesAndExhibitors:
+    handler: src/handlers/AdminHandler.importExportServicesAndExhibitors # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: importExportServicesAndExhibitors
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: true
+          # authorizer: ${self:custom.authorizers.authorize}
+  deleteBucketFileByKey:
+    handler: src/handlers/AdminHandler.deleteBucketFileByKey # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: deleteBucketFileByKey
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  saveClientAccessPermission:
+    handler: src/handlers/UserHandler.saveClientAccessPermission # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: saveClientAccessPermission
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  addEventTask:
+    handler: src/handlers/UserHandler.addEventTask # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: addEventTask
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  addConfirmationDate:
+    handler: src/handlers/UserHandler.addConfirmationDate # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: addConfirmationDate
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  saveViewExhibitor:
+    handler: src/handlers/UserHandler.saveViewExhibitor # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: saveViewExhibitor
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  updateViewExhibitor:
+    handler: src/handlers/UserHandler.updateViewExhibitor # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: updateViewExhibitor
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  addCrewConfirmationDate:
+    handler: src/handlers/UserHandler.addCrewConfirmationDate # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: addCrewConfirmationDate
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getLetestDate:
+    handler: src/handlers/UserHandler.getLetestDate # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getLetestDate
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  checkCrewLogin:
+    handler: src/handlers/UserHandler.checkCrewLogin # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: checkCrewLogin
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getSendHistory:
+    handler: src/handlers/UserHandler.getSendHistory # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getSendHistory
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getViewExhibitor:
+    handler: src/handlers/UserHandler.getViewExhibitor # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getViewExhibitor
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getViewExhibitorDetails:
+    handler: src/handlers/UserHandler.getViewExhibitorDetails # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getViewExhibitorDetails
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getViewExhibtr:
+    handler: src/handlers/UserHandler.getViewExhibtr # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getViewExhibtr
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  getTaskAssignToList:
+    handler: src/handlers/UserHandler.getTaskAssignToList # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: getTaskAssignToList
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  deleteEventTask:
+    handler: src/handlers/UserHandler.deleteEventTask # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: deleteEventTask
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  listEventTask:
+    handler: src/handlers/UserHandler.listEventTask # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: listEventTask
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  changeTaskStatus:
+    handler: src/handlers/UserHandler.changeTaskStatus # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: changeTaskStatus
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  updateUserTaskOrder:
+    handler: src/handlers/UserHandler.updateUserTaskOrder # reference the file and exported method
+    events: # events trigger lambda functions
+      - http: # this is an API Gateway HTTP event trigger
+          path: updateUserTaskOrder
+          method: post
+          cors:
+           origin: '*'
+           headers:
+             - Content-Type
+             - X-Amz-Date
+             - Authorization
+             - X-Api-Key
+             - X-Amz-Security-Token
+             - X-Amz-User-Agent
+           allowCredentials: false
+          authorizer: ${self:custom.authorizers.authorize}
+  sendEmailFromInvokeFunV1:
+    handler: src/handlers/UserHandler.sendEmailFromInvokeFunV1  

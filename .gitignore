@@ -1,0 +1,11 @@
+.build/
+
+node_modules/
+.vscode
+.serverless/
+package-lock.json
+package.json
+.env
+.env.prod
+.env.uat
+.env.dev
